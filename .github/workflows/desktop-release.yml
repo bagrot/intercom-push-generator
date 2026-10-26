@@ -31,7 +31,7 @@ jobs:
           if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne "v$version") { throw "Tag does not match package version" }
           if (-not (Test-Path -LiteralPath "release/Intercom-Push-Generator-Setup-$version.exe")) { throw "Installer missing" }
       - name: Publish GitHub Release
-        if: github.ref_type == 'tag'
+        if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
