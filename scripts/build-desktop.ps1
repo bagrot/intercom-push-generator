@@ -54,5 +54,5 @@ if (Test-Path -LiteralPath $defaultApp) {
   Remove-Item -LiteralPath $defaultApp -Force
 }
 
-& pnpm exec electron-builder --win nsis --prepackaged $unpackedRoot
+& pnpm exec electron-builder --win nsis --prepackaged $unpackedRoot --publish never
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
