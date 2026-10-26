@@ -1,7 +1,7 @@
 {
   "name": "intercom-push-generator-desktop",
-  "version": "0.1.1",
-  "description": "Генератор новостей и push-уведомлений по домофонам",
+  "version": "0.2.0",
+  "description": "Генератор новостей и push-уведомлений по домофонам и шлагбаумам",
   "author": "Электронный дом",
   "private": true,
   "main": "main.cjs"

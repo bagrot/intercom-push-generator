@@ -1,19 +1,36 @@
-export type ScenarioId = "installation_start" | "installation_reschedule" | "key_issue" | "key_issue_reschedule" | "installed_panel" | "installed_sip" | "app_outage" | "mechanical_failure" | "repair_extension" | "function_restored";
-export type FieldKey = "installationDates" | "code" | "issueDates" | "sessions" | "codeOffDate" | "completionDate";
-export type ScenarioDefinition = { id: ScenarioId; category: string; label: string; fields: FieldKey[]; required: FieldKey[]; addressRequired: boolean };
+import barrierTemplates from "./barrier-templates.json";
+
+export type ProfileId = "intercom" | "barrier";
+export type ScenarioId = "installation_start" | "modernization_sip" | "installation_reschedule" | "key_issue" | "key_issue_reschedule" | "installed_panel" | "installed_sip" | "app_outage" | "mechanical_failure" | "repair_extension" | "function_restored" | "barrier_new" | "barrier_operation" | "barrier_replacement" | "barrier_widget" | "barrier_entry_rules" | "barrier_maintenance" | "barrier_connection" | "barrier_plate_restored" | "barrier_plate_issues" | "barrier_radars" | "barrier_operator" | "barrier_no_quorum" | "barrier_commercial";
+export type FieldKey = "installationDates" | "code" | "issueDates" | "sessions" | "codeOffDate" | "completionDate" | "barrierOperationDate" | "barrierWorkDate" | "barrierWorkTime" | "barrierOutageDates" | "barrierRadarDate";
+export type ScenarioDefinition = { id: ScenarioId; profile: ProfileId; category: string; label: string; fields: FieldKey[]; required: FieldKey[]; addressRequired: boolean };
 export type TemplateRecord = { newsTitle: string; newsBody: string; pushTitle: string; pushBody: string };
 
 export const SCENARIOS: ScenarioDefinition[] = [
-  { id: "installation_start", category: "Новый домофон", label: "Начало монтажных работ", fields: ["installationDates", "code"], required: ["installationDates"], addressRequired: true },
-  { id: "installation_reschedule", category: "Новый домофон", label: "Изменения даты начала работ", fields: ["installationDates", "code"], required: ["installationDates"], addressRequired: true },
-  { id: "key_issue", category: "Новый домофон", label: "Выдача ключей", fields: ["issueDates", "sessions", "codeOffDate"], required: ["issueDates"], addressRequired: true },
-  { id: "key_issue_reschedule", category: "Новый домофон", label: "Перенос даты выдачи ключей", fields: ["issueDates", "sessions", "codeOffDate"], required: ["issueDates"], addressRequired: true },
-  { id: "installed_panel", category: "Завершена установка", label: "Панель", fields: [], required: [], addressRequired: false },
-  { id: "installed_sip", category: "Завершена установка", label: "СИП-адаптер", fields: [], required: [], addressRequired: false },
-  { id: "app_outage", category: "Поломка", label: "Управление через ЭД", fields: [], required: [], addressRequired: false },
-  { id: "mechanical_failure", category: "Поломка", label: "Механическая поломка", fields: ["completionDate"], required: [], addressRequired: true },
-  { id: "repair_extension", category: "Поломка", label: "Продление срока работ", fields: [], required: [], addressRequired: true },
-  { id: "function_restored", category: "Поломка", label: "Восстановлен функционал", fields: [], required: [], addressRequired: true },
+  { id: "installation_start", profile: "intercom", category: "Новый домофон", label: "Начало монтажных работ", fields: ["installationDates", "code"], required: ["installationDates"], addressRequired: true },
+  { id: "modernization_sip", profile: "intercom", category: "Новый домофон", label: "Модернизация (СИП-адаптер)", fields: ["installationDates"], required: ["installationDates"], addressRequired: false },
+  { id: "installation_reschedule", profile: "intercom", category: "Новый домофон", label: "Изменения даты начала работ", fields: ["installationDates", "code"], required: ["installationDates"], addressRequired: true },
+  { id: "key_issue", profile: "intercom", category: "Новый домофон", label: "Выдача ключей", fields: ["issueDates", "sessions", "codeOffDate"], required: ["issueDates"], addressRequired: true },
+  { id: "key_issue_reschedule", profile: "intercom", category: "Новый домофон", label: "Перенос даты выдачи ключей", fields: ["issueDates", "sessions", "codeOffDate"], required: ["issueDates"], addressRequired: true },
+  { id: "installed_panel", profile: "intercom", category: "Завершена установка", label: "Панель", fields: [], required: [], addressRequired: false },
+  { id: "installed_sip", profile: "intercom", category: "Завершена установка", label: "СИП-адаптер", fields: [], required: [], addressRequired: false },
+  { id: "app_outage", profile: "intercom", category: "Поломка", label: "Управление через ЭД", fields: [], required: [], addressRequired: false },
+  { id: "mechanical_failure", profile: "intercom", category: "Поломка", label: "Механическая поломка", fields: ["completionDate"], required: [], addressRequired: true },
+  { id: "repair_extension", profile: "intercom", category: "Поломка", label: "Продление срока работ", fields: [], required: [], addressRequired: true },
+  { id: "function_restored", profile: "intercom", category: "Поломка", label: "Восстановлен функционал", fields: [], required: [], addressRequired: true },
+  { id: "barrier_new", profile: "barrier", category: "Подключение и установка", label: "Новый шлагбаум", fields: [], required: [], addressRequired: false },
+  { id: "barrier_operation", profile: "barrier", category: "Подключение и установка", label: "Начало эксплуатации", fields: ["barrierOperationDate"], required: ["barrierOperationDate"], addressRequired: false },
+  { id: "barrier_replacement", profile: "barrier", category: "Подключение и установка", label: "Замена шлагбаумов", fields: [], required: [], addressRequired: false },
+  { id: "barrier_widget", profile: "barrier", category: "Виджет и правила", label: "Реклама виджета домофоны+шлагбаум", fields: [], required: [], addressRequired: false },
+  { id: "barrier_entry_rules", profile: "barrier", category: "Виджет и правила", label: "Новые правила въезда", fields: [], required: [], addressRequired: false },
+  { id: "barrier_maintenance", profile: "barrier", category: "Стрелы подняты", label: "Технические работы (стрелы подняты)", fields: ["barrierWorkDate", "barrierWorkTime"], required: ["barrierWorkDate"], addressRequired: false },
+  { id: "barrier_connection", profile: "barrier", category: "Стрелы подняты", label: "Ограничения связи (стрелы подняты)", fields: ["barrierOutageDates"], required: [], addressRequired: false },
+  { id: "barrier_plate_restored", profile: "barrier", category: "Распознавание ГРЗ", label: "Добавление ГРЗ (восстановлено)", fields: [], required: [], addressRequired: false },
+  { id: "barrier_plate_issues", profile: "barrier", category: "Распознавание ГРЗ", label: "Проблемы с распознаванием", fields: [], required: [], addressRequired: false },
+  { id: "barrier_radars", profile: "barrier", category: "Распознавание ГРЗ", label: "Отключение радаров", fields: ["barrierRadarDate"], required: [], addressRequired: false },
+  { id: "barrier_operator", profile: "barrier", category: "Распознавание ГРЗ", label: "Смена ОО (обновление распознавания)", fields: [], required: [], addressRequired: false },
+  { id: "barrier_no_quorum", profile: "barrier", category: "Отключение управления ЭД", label: "Нет кворума", fields: [], required: [], addressRequired: false },
+  { id: "barrier_commercial", profile: "barrier", category: "Отключение управления ЭД", label: "Коммерция", fields: [], required: [], addressRequired: false },
 ];
 
 const SUPPORT = "По вопросам работы домофона можно обращаться в службу технической поддержки через форму обратной связи в разделе «Еще» — «Техподдержка», категория «Домофон» или по телефону +7 (499) 652-62-11. При обращении, пожалуйста, опишите ваш вопрос максимально подробно.";
@@ -25,6 +42,12 @@ export const DEFAULT_TEMPLATES: Record<ScenarioId, TemplateRecord> = {
     newsBody: "Уважаемые жители, {{INSTALLATION_PERIOD}} в вашем доме по адресу: {{ADDRESS}} будет устанавливаться новое домофонное оборудование.{{CODE_PARAGRAPH}}\n\nО дате выдачи магнитных ключей сообщим дополнительно.",
     pushTitle: "Временный код от домофона",
     pushBody: "На период работ по установке нового оборудования в вашем доме",
+  },
+  modernization_sip: {
+    newsTitle: "Бесплатная модернизация домофонов",
+    newsBody: "Уважаемые жители, {{INSTALLATION_PERIOD}} в вашем доме будут проводиться работы по бесплатной модернизации домофонного оборудования. Работы проводятся за счет организации, обслуживающей домофоны, с целью подключения системы к сервису «Умный домофон».\n\nБлагодаря модернизации вы сможете управлять домофоном со своего смартфона, в приложении «Электронный дом Москва», даже находясь вне дома:\n- получать видеозвонки от домофона на ваш смартфон;\n- открывать дверь подъезда нажатием кнопки в приложении;\n- создавать временные ссылки или коды для ваших гостей и курьеров.\n\nСтоимость оплаты за использование домофона после модернизации не изменится.",
+    pushTitle: "Бесплатная модернизация",
+    pushBody: "Домофон в вашем доме будет подключен к сервису «Умный домофон» с управлением через приложение «Электронный дом»",
   },
   installation_reschedule: {
     newsTitle: "Перенос сроков установки нового домофона",
@@ -80,10 +103,12 @@ export const DEFAULT_TEMPLATES: Record<ScenarioId, TemplateRecord> = {
     pushTitle: "Домофон работает",
     pushBody: "Работа умного домофона в вашем доме восстановлена",
   },
+  ...barrierTemplates,
 };
 
 export const TEMPLATE_VARIABLES = [
   "{{ADDRESS}}", "{{ADDRESS_SUFFIX}}", "{{INSTALLATION_PERIOD}}", "{{INSTALLATION_VERB}}", "{{CODE_PARAGRAPH}}",
   "{{CODE_CONTINUES_PARAGRAPH}}", "{{ISSUE_PERIOD}}", "{{ISSUE_EVENT}}",
   "{{SESSIONS_PARAGRAPH}}", "{{SESSIONS_RESCHEDULE_PARAGRAPH}}", "{{CODE_OFF_PARAGRAPH}}", "{{COMPLETION_SENTENCE}}",
+  "{{BARRIER_OPERATION_DATE}}", "{{BARRIER_OPERATION_NEXT_DATE}}", "{{BARRIER_WORK_DATE}}", "{{BARRIER_WORK_TIME}}", "{{BARRIER_OUTAGE_PERIOD}}", "{{BARRIER_RADAR_START}}",
 ];

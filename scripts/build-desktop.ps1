@@ -6,6 +6,7 @@ $unpackedRoot = [System.IO.Path]::GetFullPath((Join-Path $releaseRoot "win-unpac
 $electronRoot = [System.IO.Path]::GetFullPath((Join-Path $projectRoot "node_modules\electron\dist"))
 $runtimeRoot = [System.IO.Path]::GetFullPath((Join-Path $projectRoot "desktop-runtime"))
 $siteRoot = [System.IO.Path]::GetFullPath((Join-Path $projectRoot "dist\client"))
+$roundsSource = [System.IO.Path]::GetFullPath((Join-Path $projectRoot "vendor\rounds"))
 $rootPackage = Get-Content -LiteralPath (Join-Path $projectRoot "package.json") -Raw -Encoding UTF8 | ConvertFrom-Json
 $desktopPackage = Get-Content -LiteralPath (Join-Path $runtimeRoot "package.json") -Raw -Encoding UTF8 | ConvertFrom-Json
 $productName = $rootPackage.build.productName
@@ -19,6 +20,12 @@ if (-not $releaseRoot.StartsWith($projectRoot + [System.IO.Path]::DirectorySepar
 }
 
 & pnpm build
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+if (-not (Test-Path -LiteralPath (Join-Path $roundsSource "app\app\page.js"))) {
+  throw "The local rounds generator was not found: $roundsSource"
+}
+& pnpm exec vite build --config rounds-desktop/vite.config.mjs
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 if (Test-Path -LiteralPath $unpackedRoot) {

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Генератор пушей по домофонам",
-  description: "Подготовка новостей и пуш-уведомлений по домофонам",
+  title: "Генератор пушей — домофоны и шлагбаумы",
+  description: "Подготовка новостей и пуш-уведомлений по домофонам и шлагбаумам",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",

@@ -17,5 +17,5 @@ export const supabase: SupabaseClient | null = hasSupabaseConfig
 
 export function isDesktopRuntime() {
   if (typeof window === "undefined") return false;
-  return window.location.hostname === "127.0.0.1" && window.location.port === "3210";
+  return Boolean(window.desktopUpdates);
 }

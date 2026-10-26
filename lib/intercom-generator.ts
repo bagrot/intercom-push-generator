@@ -26,10 +26,23 @@ export type GeneratorValues = {
   issueEndDate: string;
   codeOffDate: string;
   completionDate: string;
+  barrierOperationDate: string;
+  barrierWorkDate: string;
+  barrierStartHour: string;
+  barrierStartMinute: string;
+  barrierEndHour: string;
+  barrierEndMinute: string;
+  barrierOutageStart: string;
+  barrierOutageEnd: string;
+  barrierRadarDate: string;
   sessions: SessionValue[];
 };
 
-export type GeneratedOutput = TemplateRecord & { newsBodyHtml: string };
+export type GeneratedOutput = TemplateRecord & { newsBodyHtml: string; newsBodyIsHtml: boolean };
+
+export function createLocalId() {
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
 
 const MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
 
@@ -43,6 +56,12 @@ function parseDate(raw: string) {
 export function formatRuDate(raw: string) {
   const date = parseDate(raw);
   return date ? `${date.day} ${MONTHS[date.month - 1]}` : "";
+}
+
+function nextDay(raw: string) {
+  const date = parseDate(raw);
+  if (!date) return "";
+  return formatRuDate(new Date(Date.UTC(date.year, date.month - 1, date.day + 1)).toISOString().slice(0, 10));
 }
 
 export function formatDateRange(startRaw: string, endRaw: string) {
@@ -126,8 +145,16 @@ export function validateValues(scenarioId: ScenarioId, values: GeneratorValues) 
   if (scenario?.addressRequired && !values.address.trim()) errors.push("Выберите адрес");
   if (scenario?.fields.includes("installationDates") && !values.installationStart && !values.installationEnd) errors.push("Укажите хотя бы одну дату работ");
   if (scenario?.fields.includes("issueDates") && !values.issueDate) errors.push("Укажите первую дату выдачи ключей");
-  if (values.installationStart && values.installationEnd && values.installationEnd < values.installationStart) errors.push("Дата окончания работ раньше даты начала");
-  if (values.issueDate && values.issueEndDate && values.issueEndDate < values.issueDate) errors.push("Конец выдачи раньше её начала");
+  if (scenario?.fields.includes("barrierOperationDate") && !values.barrierOperationDate) errors.push("Укажите дату начала эксплуатации");
+  if (scenario?.fields.includes("barrierWorkDate") && !values.barrierWorkDate) errors.push("Укажите дату технических работ");
+  if (scenario?.fields.includes("installationDates") && values.installationStart && values.installationEnd && values.installationEnd < values.installationStart) errors.push("Дата окончания работ раньше даты начала");
+  if (scenario?.fields.includes("issueDates") && values.issueDate && values.issueEndDate && values.issueEndDate < values.issueDate) errors.push("Конец выдачи раньше её начала");
+  if (scenario?.fields.includes("barrierOutageDates") && values.barrierOutageStart && values.barrierOutageEnd && values.barrierOutageEnd < values.barrierOutageStart) errors.push("Конец периода ограничений раньше начала");
+  if (scenario?.fields.includes("barrierWorkTime")) {
+    const timeParts = [values.barrierStartHour, values.barrierStartMinute, values.barrierEndHour, values.barrierEndMinute];
+    if (timeParts.some(Boolean) && !timeParts.every(Boolean)) errors.push("Укажите оба времени полностью или оставьте их пустыми");
+    if (timeParts.every(Boolean) && `${timeParts[2]}:${timeParts[3]}` <= `${timeParts[0]}:${timeParts[1]}`) errors.push("Окончание работ должно быть позже начала");
+  }
   if (scenario?.fields.includes("sessions")) for (const session of values.sessions) {
     if (session.residentEntranceEnd.trim() && !session.residentEntranceStart.trim()) errors.push("Сначала укажите первый подъезд диапазона");
     const range = session.timeRanges[0];
@@ -150,10 +177,16 @@ export function generateOutput(scenarioId: ScenarioId, values: GeneratorValues, 
   const code = values.code.trim().toUpperCase();
   const codeOffDate = formatRuDate(values.codeOffDate);
   const completionDate = formatRuDate(values.completionDate);
+  const barrierTime = [values.barrierStartHour, values.barrierStartMinute, values.barrierEndHour, values.barrierEndMinute].every(Boolean)
+    ? ` с ${values.barrierStartHour}:${values.barrierStartMinute} до ${values.barrierEndHour}:${values.barrierEndMinute}` : "";
+  const outagePeriod = values.barrierOutageStart && values.barrierOutageEnd
+    ? `В период ${formatDateRange(values.barrierOutageStart, values.barrierOutageEnd)}`
+    : values.barrierOutageStart ? formatRuDate(values.barrierOutageStart)
+      : values.barrierOutageEnd ? `До ${formatRuDate(values.barrierOutageEnd)}` : "В ближайшие несколько дней";
   const variables: Record<string, string> = {
     ADDRESS: address,
     ADDRESS_SUFFIX: address ? ` по адресу: ${address}` : "",
-    INSTALLATION_PERIOD: scenarioId === "installation_start" ? installationPeriod.replace(" по ", " до ") : installationPeriod,
+    INSTALLATION_PERIOD: scenarioId === "installation_start" || scenarioId === "modernization_sip" ? installationPeriod.replace(" по ", " до ") : installationPeriod,
     INSTALLATION_VERB: values.installationStart && !values.installationEnd ? "начнутся" : "пройдут",
     CODE_PARAGRAPH: code ? `\n\nВременный код для входа в подъезд: ${code}, далее — нажать кнопку с изображением трубки.` : "",
     CODE_CONTINUES_PARAGRAPH: code
@@ -165,6 +198,12 @@ export function generateOutput(scenarioId: ScenarioId, values: GeneratorValues, 
     SESSIONS_RESCHEDULE_PARAGRAPH: sessions.length ? `\n\nВремя и место выдачи ключей:\n${sessions.join("\n")}` : "",
     CODE_OFF_PARAGRAPH: codeOffDate ? `\n\nВременный код для входа в подъезд будет отключен ${codeOffDate}.` : "",
     COMPLETION_SENTENCE: completionDate ? ` Ориентировочная дата завершения работ — ${completionDate}.` : "",
+    BARRIER_OPERATION_DATE: formatRuDate(values.barrierOperationDate),
+    BARRIER_OPERATION_NEXT_DATE: nextDay(values.barrierOperationDate),
+    BARRIER_WORK_DATE: formatRuDate(values.barrierWorkDate),
+    BARRIER_WORK_TIME: barrierTime,
+    BARRIER_OUTAGE_PERIOD: outagePeriod,
+    BARRIER_RADAR_START: values.barrierRadarDate ? `С ${formatRuDate(values.barrierRadarDate)}` : "В ближайшее время",
   };
   const newsTitle = render(template.newsTitle, variables);
   // Previously saved templates contain a fixed verb; keep their generated text date-aware too.
@@ -174,17 +213,18 @@ export function generateOutput(scenarioId: ScenarioId, values: GeneratorValues, 
   const newsBody = render(newsBodyTemplate, variables);
   const pushTitle = render(template.pushTitle, variables);
   const pushBody = render(template.pushBody, variables);
-  return { newsTitle, newsBody, newsBodyHtml: textToHtml(newsBody), pushTitle, pushBody };
+  const newsBodyIsHtml = !!SCENARIOS.find((scenario) => scenario.id === scenarioId && scenario.profile === "barrier");
+  return { newsTitle, newsBody, newsBodyHtml: newsBodyIsHtml ? newsBody : textToHtml(newsBody), newsBodyIsHtml, pushTitle, pushBody };
 }
 
 export function emptyTimeRange(): TimeRangeValue {
-  return { id: crypto.randomUUID(), startHour: "", startMinute: "", endHour: "", endMinute: "" };
+  return { id: createLocalId(), startHour: "", startMinute: "", endHour: "", endMinute: "" };
 }
 
 export function emptySession(): SessionValue {
-  return { id: crypto.randomUUID(), date: "", entrances: [""], timeRanges: [emptyTimeRange()], residentEntranceStart: "", residentEntranceEnd: "" };
+  return { id: createLocalId(), date: "", entrances: [""], timeRanges: [emptyTimeRange()], residentEntranceStart: "", residentEntranceEnd: "" };
 }
 
 export function emptyValues(): GeneratorValues {
-  return { address: "", installationStart: "", installationEnd: "", code: "", issueDate: "", issueEndDate: "", codeOffDate: "", completionDate: "", sessions: [emptySession()] };
+  return { address: "", installationStart: "", installationEnd: "", code: "", issueDate: "", issueEndDate: "", codeOffDate: "", completionDate: "", barrierOperationDate: "", barrierWorkDate: "", barrierStartHour: "", barrierStartMinute: "", barrierEndHour: "", barrierEndMinute: "", barrierOutageStart: "", barrierOutageEnd: "", barrierRadarDate: "", sessions: [emptySession()] };
 }

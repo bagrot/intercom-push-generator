@@ -1,0 +1,41 @@
+@import "tailwindcss";
+@source "../vendor/rounds/app/app/page.js";
+
+:root { font-family: Arial, Helvetica, sans-serif; color: #1f2937; background: #f5f6f8; }
+body { margin: 0; }
+.rounds-profile-bar { background: #232b3b; color: #fff; }
+.rounds-profile-bar-inner { max-width: 1400px; margin: 0 auto; padding: 10px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.rounds-profile-brand, .rounds-profile-actions { display: flex; align-items: center; gap: 12px; }
+.rounds-profile-brand { font-weight: 700; }
+.rounds-profile-logo { width: 32px; height: 32px; display: grid; place-items: center; border: 2px solid #ff654a; font-size: 13px; }
+.rounds-profile-current { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border-radius: 6px; background: rgba(77, 120, 221, .28); font-size: 13px; font-weight: 700; }
+.rounds-profile-dot { width: 8px; height: 8px; border-radius: 50%; background: #83a6ff; }
+.rounds-profile-actions a { display: inline-flex; align-items: center; min-height: 32px; padding: 0 11px; border: 1px solid #ff654a; border-radius: 5px; color: #fff; font-size: 13px; font-weight: 700; text-decoration: none; }
+.rounds-profile-actions a:hover { background: #ff654a; }
+.rounds-desktop-label { color: #c7d0df; font-size: 12px; }
+.desktop-update { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; color: #cbd3df; font-size: 12px; }
+.desktop-update strong { color: #fff; }
+.desktop-update button { min-height: 30px; padding: 5px 10px; border: 1px solid #ff654a; border-radius: 5px; color: #fff; background: transparent; font-size: 12px; font-weight: 700; }
+.desktop-update button:hover, .desktop-update.has-update button { background: #ff654a; }
+.desktop-update button:disabled { opacity: .65; cursor: wait; }
+.desktop-update small { width: 100%; color: #aeb9ca; }
+@media (max-width: 640px) { .rounds-profile-bar-inner { flex-wrap: wrap; } .rounds-profile-actions { flex-wrap: wrap; } .rounds-desktop-label { display: none; } }
+
+.rounds-app { min-height: calc(100vh - 53px); background: #f5f6f8; }
+.rounds-intro { max-width: 1400px; margin: 0 auto; padding: 42px 24px 0; }
+.rounds-intro span { color: #ff654a; font-size: 12px; font-weight: 800; letter-spacing: .18em; }
+.rounds-intro h1 { margin: 12px 0 7px; color: #142039; font-size: clamp(28px, 3vw, 36px); font-weight: 750; letter-spacing: -.035em; }
+.rounds-intro p { margin: 0; color: #7b879a; font-size: 14px; }
+.rounds-app > .min-h-screen > .mx-auto { padding-top: 25px; padding-bottom: 56px; }
+.rounds-app > .min-h-screen > .mx-auto > .mb-4:first-child { display: none; }
+.rounds-app .rounded-lg.border-gray-200.bg-white.shadow-sm { border-color: #dce2ea; border-radius: 9px; box-shadow: 0 8px 22px rgba(18, 31, 55, .045); }
+.rounds-app .rounded-lg.border-gray-200.bg-white.shadow-sm > .border-b { border-color: #e7ebf0; }
+.rounds-app button { cursor: pointer; }
+.rounds-app button.bg-orange-500 { background: #ff654a; border-color: #ff654a; box-shadow: 0 4px 10px rgba(255, 101, 74, .16); }
+.rounds-app button.bg-orange-500:hover { background: #ee593f; }
+.rounds-app button.bg-white.border-gray-300.shadow-sm { background: #ff654a; border-color: #ff654a; color: #fff; box-shadow: 0 4px 10px rgba(255, 101, 74, .16); }
+.rounds-app button.bg-transparent.border-transparent:hover { color: #db523b; background: #fff1ed; }
+.rounds-app input:focus-visible, .rounds-app textarea:focus-visible, .rounds-app select:focus-visible { border-color: #ff654a; outline: 2px solid rgba(255, 101, 74, .16); outline-offset: 1px; }
+.rounds-app .text-gray-900 { color: #142039; }
+.rounds-app .text-gray-500 { color: #7b879a; }
+@media (max-width: 640px) { .rounds-intro { padding-top: 28px; } .rounds-app > .min-h-screen > .mx-auto { padding-left: 14px; padding-right: 14px; } }

@@ -1,6 +1,6 @@
 {
   "name": "intercom-push-generator",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "main": "electron/main.cjs",
   "engines": {
@@ -11,7 +11,9 @@
     "dev": "vinext dev --port 5173",
     "dev:9222": "vinext dev --port 9222",
     "build": "vinext build",
+    "build:web": "pnpm build && pnpm exec vite build --config rounds-desktop/vite.config.mjs",
     "build:desktop": "powershell -ExecutionPolicy Bypass -File scripts/build-desktop.ps1",
+    "test:desktop": "node --test desktop-runtime/updates.test.cjs",
     "desktop": "electron .",
     "start": "node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js dev --config dist/server/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --inspector-port 0",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
@@ -70,7 +72,7 @@
   "type": "module",
   "build": {
     "appId": "ru.ed.intercom-push-generator",
-    "productName": "Генератор пушей — Домофоны",
+    "productName": "Генератор пушей — Электронный дом",
     "electronDist": "node_modules/electron/dist",
     "directories": {
       "output": "release",
@@ -101,7 +103,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Генератор пушей — Домофоны"
+      "shortcutName": "Генератор пушей — Электронный дом"
     }
   }
 }
