@@ -67,7 +67,7 @@ export function DesktopUpdateNotice() {
         <div className="desktop-update-dialog-content">
           <span className="desktop-update-dialog-icon" aria-hidden="true">{checking ? "…" : state?.status === "update" ? "↑" : state?.status === "current" ? "✓" : "!"}</span>
           <h2 id="desktop-update-title">{checking ? "Проверяем обновления" : state?.status === "update" ? "Доступна новая версия" : state?.status === "current" ? "Обновлений нет" : "Не удалось проверить обновления"}</h2>
-          <p role="status">{checking ? "Подключаемся к GitHub…" : state?.status === "update" ? `Установлена версия ${state.currentVersion}. Можно скачать версию ${state.latestVersion}.` : state?.status === "current" ? `У вас установлена актуальная версия ${state.currentVersion}.` : state?.message || "Попробуйте ещё раз позже."}</p>
+          <p role="status">{checking ? "Проверяем Яндекс Диск…" : state?.status === "update" ? `Установлена версия ${state.currentVersion}. Можно скачать версию ${state.latestVersion}.` : state?.status === "current" ? `У вас установлена актуальная версия ${state.currentVersion}.` : state?.message || "Попробуйте ещё раз позже."}</p>
           {state?.status === "update" && !checking && <>
             <div className="desktop-update-notes"><strong>Что изменится</strong><div>{state.releaseNotes}</div></div>
             <p className="desktop-update-install-hint">После загрузки приложение запустит установщик и закроется. Ваши локальные данные сохранятся.</p>

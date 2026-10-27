@@ -1,6 +1,6 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { compareVersions, releaseState, releaseUrls, installerAsset, releaseNotes } = require("./updates.cjs");
+const { compareVersions, publicFileApiUrl, isYandexDownloadUrl, installerAsset, releaseState } = require("./updates.cjs");
 
 test("compares numeric versions rather than strings", () => {
   assert.equal(compareVersions("v0.2.10", "0.2.9"), 1);
@@ -9,21 +9,23 @@ test("compares numeric versions rather than strings", () => {
   assert.equal(compareVersions("latest", "0.2.0"), null);
 });
 
-test("finds only the matching installer in the official repository", () => {
-  const payload = {
-    tag_name: "v0.2.1",
-    html_url: "https://github.com/bagrot/intercom-push-generator/releases/tag/v0.2.1",
-    assets: [
-      { name: "Intercom-Push-Generator-Setup-0.2.0.exe", browser_download_url: "https://github.com/bagrot/intercom-push-generator/releases/download/v0.2.1/old.exe" },
-      { name: "Intercom-Push-Generator-Setup-0.2.1.exe", browser_download_url: "https://github.com/bagrot/intercom-push-generator/releases/download/v0.2.1/Intercom-Push-Generator-Setup-0.2.1.exe", size: 100, digest: `sha256:${"a".repeat(64)}` },
-    ],
-  };
-  assert.equal(releaseState("0.2.0", payload).status, "update");
-  assert.match(releaseUrls(payload).downloadUrl, /Setup-0\.2\.1\.exe$/);
-  assert.equal(releaseState("0.2.1", payload).status, "current");
-  assert.equal(releaseUrls({ ...payload, assets: [{ name: "Intercom-Push-Generator-Setup-0.2.1.exe", browser_download_url: "https://evil.example/installer.exe" }] }).downloadUrl, payload.html_url);
-  assert.equal(installerAsset(payload).sha256, "a".repeat(64));
-  assert.equal(releaseState("0.2.0", { ...payload, assets: [{ ...payload.assets[1], digest: "" }] }).status, "unavailable");
-  assert.equal(releaseState("0.2.0", { ...payload, assets: [{ ...payload.assets[1], browser_download_url: "https://evil.example/installer.exe" }] }).status, "unavailable");
-  assert.equal(releaseNotes({ body: "  Исправления интерфейса  " }), "Исправления интерфейса");
+test("accepts only the matching installer and checksum from the public folder manifest", () => {
+  const manifest = { version: "0.2.4", file: "Intercom-Push-Generator-Setup-0.2.4.exe", size: 100,
+    sha256: "a".repeat(64), notes: "  Исправления интерфейса  " };
+  assert.equal(releaseState("0.2.3", manifest).status, "update");
+  assert.equal(releaseState("0.2.3", manifest).releaseNotes, "Исправления интерфейса");
+  assert.equal(releaseState("0.2.4", manifest).status, "current");
+  assert.equal(installerAsset(manifest).sha256, "a".repeat(64));
+  assert.equal(releaseState("0.2.3", { ...manifest, file: "other.exe" }).status, "unavailable");
+  assert.equal(releaseState("0.2.3", { ...manifest, sha256: "" }).status, "unavailable");
+  assert.equal(releaseState("0.2.3", { ...manifest, size: -1 }).status, "unavailable");
+});
+
+test("builds a path scoped to the public folder and restricts download hosts", () => {
+  const url = new URL(publicFileApiUrl("latest.json"));
+  assert.equal(url.searchParams.get("path"), "/latest.json");
+  assert.match(url.searchParams.get("public_key"), /^https:\/\/disk\.yandex\.ru\/d\//);
+  assert.equal(isYandexDownloadUrl("https://downloader.disk.yandex.ru/file"), true);
+  assert.equal(isYandexDownloadUrl("https://evil.example/file"), false);
+  assert.equal(isYandexDownloadUrl("http://downloader.disk.yandex.ru/file"), false);
 });

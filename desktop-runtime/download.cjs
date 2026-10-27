@@ -28,7 +28,7 @@ async function saveVerifiedInstaller(body, directory, asset, report = () => {}) 
     });
     await pipeline(Readable.fromWeb(body), progress, fs.createWriteStream(partial));
     report({ phase: "verifying", percent: 100 });
-    if (received !== asset.size || hash.digest("hex") !== asset.sha256) throw new Error("Контрольная сумма установщика не совпадает с релизом GitHub.");
+    if (received !== asset.size || hash.digest("hex") !== asset.sha256) throw new Error("Контрольная сумма установщика не совпадает с опубликованной версией.");
     await fs.promises.rm(target, { force: true });
     await fs.promises.rename(partial, target);
     return target;

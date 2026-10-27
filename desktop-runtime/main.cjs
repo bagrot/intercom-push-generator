@@ -2,7 +2,7 @@ const { app, BrowserWindow, dialog, ipcMain, net, shell } = require("electron");
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
-const { releaseState, installerAsset } = require("./updates.cjs");
+const { PUBLIC_FOLDER, publicFileApiUrl, isYandexDownloadUrl, releaseState, installerAsset } = require("./updates.cjs");
 const { saveVerifiedInstaller } = require("./download.cjs");
 
 const MIME = {
@@ -15,7 +15,6 @@ const MIME = {
   ".ico": "image/x-icon",
   ".woff2": "font/woff2",
 };
-const RELEASE_API = "https://api.github.com/repos/bagrot/intercom-push-generator/releases/latest";
 const PORT = 3210; // Keep the origin stable so local templates and imported addresses persist across updates.
 
 let server;
@@ -67,30 +66,31 @@ function startStaticServer() {
 async function checkForUpdates() {
   const currentVersion = app.getVersion();
   try {
-    const response = await net.fetch(RELEASE_API, {
-      headers: {
-        Accept: "application/vnd.github+json",
-        "User-Agent": "intercom-push-generator-desktop",
-      },
-    });
-    if (response.status === 404) {
-      latestInstaller = null;
-      return { status: "unavailable", currentVersion, message: "На GitHub пока нет опубликованного релиза." };
-    }
-    if (!response.ok) throw new Error(`GitHub: HTTP ${response.status}`);
-    const payload = await response.json();
-    const state = releaseState(currentVersion, payload);
-    latestInstaller = state.status === "update" ? installerAsset(payload) : null;
+    const response = await net.fetch(await publicDownloadUrl("latest.json"), { cache: "no-store" });
+    if (!response.ok) throw new Error(`Manifest: HTTP ${response.status}`);
+    const raw = await response.text();
+    if (raw.length > 20000) throw new Error("Файл версии слишком большой.");
+    const manifest = JSON.parse(raw);
+    const state = releaseState(currentVersion, manifest);
+    latestInstaller = state.status === "update" ? installerAsset(manifest) : null;
     return state;
   } catch {
     latestInstaller = null;
-    return { status: "unavailable", currentVersion, message: "Не удалось проверить GitHub. Попробуйте позже." };
+    return { status: "unavailable", currentVersion, message: "Не удалось проверить обновления на Яндекс Диске. Попробуйте позже." };
   }
+}
+
+async function publicDownloadUrl(name) {
+  const response = await net.fetch(publicFileApiUrl(name), { cache: "no-store" });
+  if (!response.ok) throw new Error(`Яндекс Диск: HTTP ${response.status}`);
+  const payload = await response.json();
+  if (!isYandexDownloadUrl(payload?.href)) throw new Error("Яндекс Диск вернул недопустимую ссылку.");
+  return payload.href;
 }
 
 async function downloadInstaller(asset, sender) {
   const directory = path.join(app.getPath("userData"), "updates");
-  const response = await net.fetch(asset.url, { headers: { "User-Agent": "intercom-push-generator-desktop" } });
+  const response = await net.fetch(await publicDownloadUrl(asset.name), { cache: "no-store" });
   if (!response.ok || !response.body) throw new Error(`Не удалось скачать установщик (HTTP ${response.status}).`);
   return saveVerifiedInstaller(response.body, directory, asset, (progress) => {
     if (!sender.isDestroyed()) sender.send("desktop-updates:progress", progress);
@@ -118,7 +118,7 @@ ipcMain.handle("desktop-updates:install", async (event) => {
   }
 });
 ipcMain.handle("desktop-updates:releases", async () => {
-  await shell.openExternal("https://github.com/bagrot/intercom-push-generator/releases");
+  await shell.openExternal(PUBLIC_FOLDER);
   return true;
 });
 

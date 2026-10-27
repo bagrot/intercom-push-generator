@@ -30,6 +30,8 @@ jobs:
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
           if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne "v$version") { throw "Tag does not match package version" }
           if (-not (Test-Path -LiteralPath "release/Intercom-Push-Generator-Setup-$version.exe")) { throw "Installer missing" }
+      - name: Create Yandex Disk update manifest
+        run: node scripts/create-update-manifest.mjs
       - name: Publish GitHub Release
         if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
         shell: pwsh
@@ -39,7 +41,7 @@ jobs:
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
           $notes = "release-notes/$version.md"
           if (Test-Path -LiteralPath $notes) {
-            gh release create "v$version" "release/Intercom-Push-Generator-Setup-$version.exe" "release/latest.yml" --title "Генератор пушей v$version" --notes-file $notes
+            gh release create "v$version" "release/Intercom-Push-Generator-Setup-$version.exe" "release/latest.yml" "release/latest.json" --title "Генератор пушей v$version" --notes-file $notes
           } else {
-            gh release create "v$version" "release/Intercom-Push-Generator-Setup-$version.exe" "release/latest.yml" --title "Генератор пушей v$version" --generate-notes
+            gh release create "v$version" "release/Intercom-Push-Generator-Setup-$version.exe" "release/latest.yml" "release/latest.json" --title "Генератор пушей v$version" --generate-notes
           }
