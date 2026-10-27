@@ -41,6 +41,8 @@ Move-Item -LiteralPath $electronExe -Destination $productExe -Force
 if (-not (Test-Path -LiteralPath $productExe)) {
   throw "Application executable was not prepared: $productExe"
 }
+& node (Join-Path $PSScriptRoot "set-desktop-icon.mjs") $productExe (Join-Path $projectRoot "build\icon.ico")
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 $appTarget = Join-Path $unpackedRoot "resources\app"
 $siteTarget = Join-Path $unpackedRoot "resources\site"
@@ -55,4 +57,7 @@ if (Test-Path -LiteralPath $defaultApp) {
 }
 
 & pnpm exec electron-builder --win nsis --prepackaged $unpackedRoot --publish never
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+& node (Join-Path $PSScriptRoot "create-update-manifest.mjs")
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

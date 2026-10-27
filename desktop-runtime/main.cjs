@@ -133,6 +133,7 @@ async function createWindow() {
       minWidth: 1040,
       minHeight: 720,
       title: "Генератор пушей — Электронный дом",
+      icon: path.join(__dirname, "icon.png"),
       autoHideMenuBar: true,
       webPreferences: {
         preload: path.join(__dirname, "preload.cjs"),
