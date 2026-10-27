@@ -2,7 +2,8 @@ const { app, BrowserWindow, dialog, ipcMain, net, shell } = require("electron");
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
-const { releaseState, releaseUrls } = require("./updates.cjs");
+const { releaseState, installerAsset } = require("./updates.cjs");
+const { saveVerifiedInstaller } = require("./download.cjs");
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -19,7 +20,8 @@ const PORT = 3210; // Keep the origin stable so local templates and imported add
 
 let server;
 let mainWindow;
-let latestDownloadUrl = "";
+let latestInstaller = null;
+let installing = false;
 
 function siteRoot() {
   return app.isPackaged ? path.join(process.resourcesPath, "site") : path.join(__dirname, "..", "dist", "client");
@@ -71,23 +73,49 @@ async function checkForUpdates() {
         "User-Agent": "intercom-push-generator-desktop",
       },
     });
-    if (response.status === 404) return { status: "unavailable", currentVersion, message: "На GitHub пока нет опубликованного релиза." };
+    if (response.status === 404) {
+      latestInstaller = null;
+      return { status: "unavailable", currentVersion, message: "На GitHub пока нет опубликованного релиза." };
+    }
     if (!response.ok) throw new Error(`GitHub: HTTP ${response.status}`);
     const payload = await response.json();
     const state = releaseState(currentVersion, payload);
-    latestDownloadUrl = state.status === "update" ? releaseUrls(payload).downloadUrl : "";
+    latestInstaller = state.status === "update" ? installerAsset(payload) : null;
     return state;
   } catch {
+    latestInstaller = null;
     return { status: "unavailable", currentVersion, message: "Не удалось проверить GitHub. Попробуйте позже." };
   }
 }
 
+async function downloadInstaller(asset, sender) {
+  const directory = path.join(app.getPath("userData"), "updates");
+  const response = await net.fetch(asset.url, { headers: { "User-Agent": "intercom-push-generator-desktop" } });
+  if (!response.ok || !response.body) throw new Error(`Не удалось скачать установщик (HTTP ${response.status}).`);
+  return saveVerifiedInstaller(response.body, directory, asset, (progress) => {
+    if (!sender.isDestroyed()) sender.send("desktop-updates:progress", progress);
+  });
+}
+
 ipcMain.handle("desktop-updates:version", () => app.getVersion());
 ipcMain.handle("desktop-updates:check", checkForUpdates);
-ipcMain.handle("desktop-updates:download", async () => {
-  if (!latestDownloadUrl) return false;
-  await shell.openExternal(latestDownloadUrl);
-  return true;
+ipcMain.handle("desktop-updates:install", async (event) => {
+  if (!app.isPackaged) return { ok: false, message: "Установка обновления доступна в собранном приложении." };
+  if (!latestInstaller) return { ok: false, message: "Сначала проверьте наличие обновления." };
+  if (installing) return { ok: false, message: "Обновление уже загружается." };
+  installing = true;
+  try {
+    const installer = await downloadInstaller(latestInstaller, event.sender);
+    if (!event.sender.isDestroyed()) event.sender.send("desktop-updates:progress", { phase: "launching", percent: 100 });
+    const error = await shell.openPath(installer);
+    if (error) throw new Error(`Не удалось запустить установщик: ${error}`);
+    setTimeout(() => app.quit(), 800);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : "Не удалось установить обновление." };
+  } finally {
+    installing = false;
+  }
 });
 ipcMain.handle("desktop-updates:releases", async () => {
   await shell.openExternal("https://github.com/bagrot/intercom-push-generator/releases");

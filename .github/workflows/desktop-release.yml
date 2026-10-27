@@ -37,4 +37,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
-          gh release create "v$version" "release/Intercom-Push-Generator-Setup-$version.exe" "release/latest.yml" --title "Генератор пушей v$version" --generate-notes
+          $notes = "release-notes/$version.md"
+          if (Test-Path -LiteralPath $notes) {
+            gh release create "v$version" "release/Intercom-Push-Generator-Setup-$version.exe" "release/latest.yml" --title "Генератор пушей v$version" --notes-file $notes
+          } else {
+            gh release create "v$version" "release/Intercom-Push-Generator-Setup-$version.exe" "release/latest.yml" --title "Генератор пушей v$version" --generate-notes
+          }

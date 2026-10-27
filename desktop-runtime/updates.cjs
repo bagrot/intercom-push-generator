@@ -28,12 +28,28 @@ function releaseUrls(payload) {
   return { releaseUrl, downloadUrl: asset?.browser_download_url || releaseUrl };
 }
 
+function installerAsset(payload) {
+  const version = versionParts(String(payload?.tag_name || ""));
+  if (!version) return null;
+  const name = `Intercom-Push-Generator-Setup-${version.join(".")}.exe`;
+  const url = `${REPO_RELEASES}/download/v${version.join(".")}/${name}`;
+  const asset = Array.isArray(payload?.assets) ? payload.assets.find((item) => item?.name === name && item?.browser_download_url === url) : null;
+  if (!asset || !Number.isSafeInteger(asset.size) || asset.size <= 0 || !/^sha256:[a-f0-9]{64}$/i.test(String(asset.digest || ""))) return null;
+  return { name, url, size: asset.size, sha256: asset.digest.slice(7).toLowerCase() };
+}
+
+function releaseNotes(payload) {
+  const body = typeof payload?.body === "string" ? payload.body.slice(0, 12000) : "";
+  return body.trim() || "Описание изменений для этой версии не указано.";
+}
+
 function releaseState(currentVersion, payload) {
   const latestVersion = String(payload?.tag_name || "").replace(/^v/, "");
   const comparison = compareVersions(latestVersion, currentVersion);
   if (comparison === null) return { status: "unavailable", currentVersion, message: "Не удалось прочитать версию релиза." };
   if (comparison <= 0) return { status: "current", currentVersion, latestVersion };
-  return { status: "update", currentVersion, latestVersion, releaseUrl: releaseUrls(payload).releaseUrl };
+  if (!installerAsset(payload)) return { status: "unavailable", currentVersion, message: "В релизе нет проверенного установщика Windows." };
+  return { status: "update", currentVersion, latestVersion, releaseUrl: releaseUrls(payload).releaseUrl, releaseNotes: releaseNotes(payload) };
 }
 
-module.exports = { compareVersions, releaseState, releaseUrls };
+module.exports = { compareVersions, releaseState, releaseUrls, installerAsset, releaseNotes };

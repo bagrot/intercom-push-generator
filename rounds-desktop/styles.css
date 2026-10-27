@@ -28,6 +28,14 @@ body { margin: 0; }
 .desktop-update-dialog-actions button { min-height: 38px; padding: 8px 14px; border: 1px solid #d8dee6; border-radius: 6px; font-size: 14px; font-weight: 700; }
 .desktop-update-dialog-actions .desktop-update-primary { border-color: #ff654a; color: #fff; background: #ff654a; }
 .desktop-update-dialog-actions .desktop-update-secondary { color: #354155; background: #fff; }
+.desktop-update-dialog-actions button:disabled { opacity: .65; cursor: wait; }
+.desktop-update-notes { margin-top: 18px; padding: 15px; border: 1px solid #e2e6eb; border-radius: 7px; background: #f7f8fa; font-size: 13px; }
+.desktop-update-notes > strong { display: block; margin-bottom: 10px; }
+.desktop-update-notes > div { max-height: 210px; overflow: auto; color: #354155; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.desktop-update-dialog .desktop-update-install-hint { min-height: 0; margin-top: 14px; font-size: 12px; }
+.desktop-update-progress { display: grid; gap: 7px; margin-top: 18px; color: #354155; font-size: 13px; }
+.desktop-update-progress progress { width: 100%; height: 8px; accent-color: #ff654a; }
+.desktop-update-dialog .desktop-update-error { min-height: 0; margin-top: 12px; color: #bb3e31; }
 @media (max-width: 640px) { .rounds-profile-bar-inner { flex-wrap: wrap; } .rounds-profile-actions { flex-wrap: wrap; } .rounds-desktop-label { display: none; } }
 
 .rounds-app { min-height: calc(100vh - 53px); background: #f5f6f8; }
