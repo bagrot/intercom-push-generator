@@ -1,6 +1,6 @@
 {
   "name": "intercom-push-generator",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": true,
   "main": "electron/main.cjs",
   "engines": {
@@ -99,8 +99,8 @@
       "artifactName": "Intercom-Push-Generator-Setup-${version}.${ext}"
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
+      "oneClick": true,
+      "perMachine": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Генератор пушей — Электронный дом"
