@@ -31,7 +31,7 @@ try {
   writeFileSync(configPath, JSON.stringify(config, null, 2));
 
   const cli = join(root, "node_modules", "electron-builder", "out", "cli", "cli.js");
-  const result = spawnSync(process.execPath, [cli, "--projectDir", project, "--mac", "dmg", "--universal", "--config", configPath, "--publish", "never"], {
+  const result = spawnSync(process.execPath, [cli, "--projectDir", project, "--mac", "dir", "--universal", "--config", configPath, "--publish", "never"], {
     cwd: root,
     env: process.env,
     stdio: "inherit",

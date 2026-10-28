@@ -26,6 +26,19 @@ jobs:
       - run: pnpm build:mac
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Create macOS disk image
+        shell: bash
+        run: |
+          version=$(node -p "require('./package.json').version")
+          app=$(find release/mac-universal -maxdepth 1 -name '*.app' -print -quit)
+          test -n "$app"
+          mkdir -p release/dmg-root
+          cp -R "$app" release/dmg-root/
+          ln -s /Applications release/dmg-root/Applications
+          hdiutil create -volname "Генератор пушей" \
+            -srcfolder release/dmg-root -ov -format UDZO \
+            "release/Intercom-Push-Generator-${version}-mac-universal.dmg"
+          hdiutil verify "release/Intercom-Push-Generator-${version}-mac-universal.dmg"
       - name: Verify macOS package
         shell: bash
         run: |
