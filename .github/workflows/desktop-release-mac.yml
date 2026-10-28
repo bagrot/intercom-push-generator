@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   mac-universal:
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -40,12 +40,17 @@ jobs:
           name: macOS-universal
           path: release/*-mac-universal.dmg
       - name: Publish test macOS release
-        if: github.ref_type == 'tag'
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           version=$(node -p "require('./package.json').version")
-          gh release create "mac-v${version}" "release/Intercom-Push-Generator-${version}-mac-universal.dmg" \
-            --title "Генератор пушей ${version} — macOS (тестовая сборка)" \
-            --notes-file "release-notes/mac-${version}.md" --prerelease
+          tag="mac-v${version}"
+          dmg="release/Intercom-Push-Generator-${version}-mac-universal.dmg"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "$dmg" --clobber
+          else
+            gh release create "$tag" "$dmg" --target "$GITHUB_SHA" \
+              --title "Генератор пушей ${version} — macOS (тестовая сборка)" \
+              --notes-file "release-notes/mac-${version}.md" --prerelease
+          fi
