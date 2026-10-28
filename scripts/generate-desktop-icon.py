@@ -33,9 +33,12 @@ draw.text((round(x), round(y)), "ЭД", font=font, fill=WHITE)
 image = canvas.resize((256, 256), Image.Resampling.LANCZOS)
 png_path = ROOT / "desktop-runtime" / "icon.png"
 ico_path = ROOT / "build" / "icon.ico"
+mac_png_path = ROOT / "build" / "icon.png"
 png_path.parent.mkdir(parents=True, exist_ok=True)
 ico_path.parent.mkdir(parents=True, exist_ok=True)
 image.save(png_path)
 image.save(ico_path, format="ICO", sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
+canvas.save(mac_png_path)
 print(png_path)
 print(ico_path)
+print(mac_png_path)

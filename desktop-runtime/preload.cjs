@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
-contextBridge.exposeInMainWorld("desktopUpdates", {
+if (process.platform === "win32") contextBridge.exposeInMainWorld("desktopUpdates", {
   version: () => ipcRenderer.invoke("desktop-updates:version"),
   check: () => ipcRenderer.invoke("desktop-updates:check"),
   install: () => ipcRenderer.invoke("desktop-updates:install"),

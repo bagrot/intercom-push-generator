@@ -1,0 +1,28 @@
+{
+  "appId": "ru.ed.intercom-push-generator",
+  "productName": "Генератор пушей — Электронный дом",
+  "directories": {
+    "app": "desktop-runtime",
+    "output": "release"
+  },
+  "files": ["**/*"],
+  "extraResources": [
+    {
+      "from": "dist/client",
+      "to": "site"
+    }
+  ],
+  "mac": {
+    "category": "public.app-category.productivity",
+    "icon": "build/icon.png",
+    "identity": null,
+    "hardenedRuntime": false,
+    "target": [
+      {
+        "target": "dmg",
+        "arch": ["universal"]
+      }
+    ],
+    "artifactName": "Intercom-Push-Generator-${version}-mac-universal.${ext}"
+  }
+}

@@ -13,6 +13,7 @@
     "build": "vinext build",
     "build:web": "pnpm build && pnpm exec vite build --config rounds-desktop/vite.config.mjs",
     "build:desktop": "powershell -ExecutionPolicy Bypass -File scripts/build-desktop.ps1",
+    "build:mac": "pnpm build:web && electron-builder --mac dmg --universal --config scripts/electron-builder.mac.json --publish never",
     "test:desktop": "node --test desktop-runtime/*.test.cjs",
     "desktop": "electron .",
     "start": "node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js dev --config dist/server/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --inspector-port 0",
