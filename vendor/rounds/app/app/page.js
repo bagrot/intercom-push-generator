@@ -4,6 +4,8 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   parseTSV,
+  parseRuDate,
+  normalizeTimeRange,
   buildGroups,
   formatDateHuman,
   buildPushRelative,
@@ -21,11 +23,25 @@ const TABS = [
   { key: "vstrecha", label: "Встречи" },
 ];
 
+const MEETING_TOPICS = {
+  "шлагбаум ампп": "установки шлагбаумов в вашем дворе",
+  "капитальный ремонт": "работ по капитальному ремонту в вашем доме",
+  "перепланировка помещений": "перепланировки помещений, находящихся в общей собственности",
+  "возможность пролонгации договора обслуживания энергосберегающего оборудования на системе отопления за счет средств энергосервисной компании, с целью снижения платежей за отопление": "обсуждения энергосервисного договора",
+  "энергосервисный договор": "обсуждения энергосервисного договора",
+  "совет дома": "выбора совета дома",
+  "несколько значений": "ТРЕБУЕТСЯ РУЧНОЙ ВВОД ТЕМАТИКИ",
+  "непонятная тема": "ТРЕБУЕТСЯ РУЧНОЙ ВВОД ТЕМАТИКИ"
+};
+const TECHNICAL_REASON = "По техническим причинам";
+const meetingAddresses = (value) => [...new Set(value.split(/[;\n]+/).map((address) => address.trim()).filter(Boolean))];
+
 const SCENARIOS = {
   obhod: [
     { key: "regular", label: "Плановые" },
     { key: "cancel_generic", label: "Отмена (пожелания)" },
     { key: "cancel_quorum", label: "Отмена (кворум)" },
+    { key: "cancel_technical", label: "Отмена (технические причины)" },
     { key: "reschedule", label: "Перенос даты" },
   ],
   piket: [
@@ -268,7 +284,10 @@ export default function AppHome() {
 
   // ✅ template hint должен учитывать cancel_wishes
   const scenarioKeyForHint = useMemo(() => {
-    if (tab === "piket" && scenarioKey === "cancel" && isCancelWishesReason(cancelReason)) return "cancel_wishes";
+    if (tab === "piket" && scenarioKey === "cancel") {
+      if (cancelReason === TECHNICAL_REASON) return "cancel_technical";
+      if (isCancelWishesReason(cancelReason)) return "cancel_wishes";
+    }
     return scenarioKey;
   }, [tab, scenarioKey, cancelReason]);
 
@@ -314,7 +333,7 @@ export default function AppHome() {
 
     // ===== ОБХОДЫ =====
     if (tab === "obhod") {
-      const manual = new Set(["cancel_generic", "cancel_quorum", "reschedule"]);
+      const manual = new Set(["cancel_generic", "cancel_quorum", "cancel_technical", "reschedule"]);
 
       // ---------- РУЧНЫЕ СЦЕНАРИИ: отмены / перенос ----------
       if (manual.has(scenarioKey)) {
@@ -542,10 +561,54 @@ export default function AppHome() {
 
     // ===== ПИКЕТЫ / ВСТРЕЧИ =====
 
-    // --- сценарий с учетом причины (только для пикетов) ---
-    let scenarioKeyFinal = scenarioKey;
-    if (tab === "piket" && scenarioKey === "cancel" && isCancelWishesReason(cancelReason)) {
-      scenarioKeyFinal = "cancel_wishes";
+    const scenarioKeyFinal = scenarioKeyForHint;
+
+    if (tab === "vstrecha" && rows.some((row) => row.meetingSheet)) {
+      const errors = [];
+      const output = [];
+      for (const row of rows) {
+        const addresses = meetingAddresses(getCell(row, "address"));
+        const address = addresses.length === 1 ? addresses[0] : getCell(row, "selectedAddress");
+        const date = parseRuDate(getCell(row, "date_raw"));
+        const rawTime = getCell(row, "time_raw");
+        const range = normalizeTimeRange(rawTime);
+        const singleTime = /^([01]?\d|2[0-3]):[0-5]\d$/.test(rawTime);
+        const time = range.ok ? range.timeText : singleTime ? `в ${rawTime}` : "";
+        const topicInput = getCell(row, "topic_raw").trim();
+        const topic = MEETING_TOPICS[topicInput.toLowerCase()] ?? topicInput;
+        const place = getCell(row, "place_raw");
+        const online = row.meetingType?.trim().toLowerCase() === "онлайн";
+        const comment = row.comment?.trim() ?? "";
+        const key = /предварительная встреча/i.test(comment) ? "preliminary"
+          : /старт\s+\d{1,2}\.\d{1,2}\.\d{4}/i.test(comment) ? "started" : "";
+        const template = templates.find((item) => item.event_type === tab && item.scenario_key === key);
+        const error = !row.meetingSheet ? "Для этой вставки используйте столбцы A–L для всех встреч"
+          : !address || !addresses.includes(address) ? "Выберите адрес встречи"
+          : !date.ok ? date.error
+          : !time ? "Проверьте время встречи"
+          : !topic || topic === "ТРЕБУЕТСЯ РУЧНОЙ ВВОД ТЕМАТИКИ" ? "Укажите тему в табличном вводе"
+          : !template ? "Укажите в комментарии старт ОСС с датой или «Предварительная встреча»"
+          : !online && !place ? "Укажите место встречи" : "";
+        if (error) {
+          errors.push({ rowNum: row.rowNum, error });
+          continue;
+        }
+        const dateText = formatDateListHuman([date]);
+        const placeText = addresses.length === 1 ? `${place} вашего дома по адресу: ${address}` : place;
+        const vars = { ADDRESS: address, DATE_TIME: `${dateText} ${time}`, TIME_RANGE: time, TOPIC_FULL: topic, PLACE_TEXT: placeText };
+        const body = online ? template.body_news_html.replace("Встреча пройдет {PLACE_TEXT}.",
+          "Встреча пройдет в онлайн-формате. Ссылка на встречу была направлена в СМС-сообщении.") : template.body_news_html;
+        output.push({
+          event_type: tab, scenario_key: key, address, date_list_human: dateText, time_range_human: time,
+          news_title: online ? "Онлайн-встреча по вопросам ОСС" : renderTemplate(template.title_news, vars),
+          news_html: renderTemplate(body, vars), push_title: template.push_title,
+          push_body: renderTemplate(online ? "Завтра {TIME_RANGE} состоится онлайн-встреча по вопросам {TOPIC_FULL}" : template.push_body, vars),
+          status: "ok", error_text: "",
+        });
+      }
+      setRowErrors(errors);
+      setResults(output);
+      return;
     }
 
     // --- выбираем шаблон по финальному ключу ---
@@ -704,6 +767,7 @@ export default function AppHome() {
                     value={cancelReason}
                     onChange={(e) => setCancelReason(e.target.value)}
                   >
+                    <option value={TECHNICAL_REASON}>{TECHNICAL_REASON}</option>
                     <option value="с набором кворума">с набором кворума</option>
                     <option value="с погодными условиями">с погодными условиями</option>
                     <option value="В соответствии с пожеланиями собственников">
@@ -783,6 +847,7 @@ export default function AppHome() {
                   placeholder={
                     tab === "obhod"
                       ? "Округ<TAB>Адрес<TAB>Дата обхода<TAB>Время обхода"
+                      : tab === "vstrecha" ? "Вставьте столбцы A–L. Разделяйте адреса точкой с запятой или новой строкой внутри ячейки."
                       : "Округ<TAB>Адрес<TAB>Дата старта<TAB>Дата окончания<TAB>Тематика<TAB>Место проведения<TAB>Дата<TAB>Время"
                   }
                 />
@@ -796,6 +861,23 @@ export default function AppHome() {
                       ))}
                     </ul>
                   </div>
+                )}
+
+                {tab === "vstrecha" && rows.filter((row) => row.meetingSheet && meetingAddresses(getCell(row, "address")).length > 1).map((row) => (
+                  <label key={row.rowNum} className="mt-3 block text-sm">
+                    Строка {row.rowNum} · адрес для публикации
+                    <select className="ml-2 rounded border border-gray-300 p-2" value={getCell(row, "selectedAddress")}
+                      onChange={(event) => setCell(row, "selectedAddress", event.target.value)}>
+                      <option value="">Выберите адрес</option>
+                      {meetingAddresses(getCell(row, "address")).map((address) => <option key={address}>{address}</option>)}
+                    </select>
+                  </label>
+                ))}
+
+                {!showGrid && rowErrors.length > 0 && (
+                  <ul className="mt-3 text-sm text-red-700">
+                    {rowErrors.map(({ rowNum, error }) => <li key={rowNum}>Строка {rowNum}: {error}</li>)}
+                  </ul>
                 )}
 
                 {showGrid && rows.length > 0 && (

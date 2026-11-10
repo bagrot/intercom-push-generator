@@ -173,20 +173,22 @@ export function renderTemplate(str, vars) {
 
 // ===================== TSV PARSE =====================
 export function parseTSV(tsv, eventType) {
-  const lines = String(tsv || "")
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0);
-
-  if (!lines.length) return { rows: [], errors: ["Пустая вставка"] };
-
+  // Excel quotes cells containing tabs, line breaks or literal quotes.
+  const lines = String(tsv || "").match(/(?:^|\r?\n)((?:"(?:[^"]|"")*"|[^"\r\n]|")*)/g) || [];
   const rows = [];
   const errors = [];
-
-  for (let i = 0; i < lines.length; i++) {
-    const cols = lines[i].split("\t").map((c) => c.trim());
-    const rowNum = i + 1;
-
+  for (const [index, line] of lines.entries()) {
+    const raw = line.replace(/^\r?\n/, "");
+    if (!raw.trim()) continue;
+    const cols = Array.from(("\t" + raw).matchAll(/\t(?:"((?:[^"]|"")*)"(?=\t|$)|([^\t]*))/g),
+      (match) => (match[1]?.replaceAll('""', '"') ?? match[2]).trim());
+    const rowNum = index + 1;
+    if (eventType === "vstrecha" && (cols.length >= 12 || cols[2] === "Адреса")) {
+      if (cols[2] === "Адреса" && cols[5] === "Дата") continue;
+      rows.push({ rowNum, meetingSheet: true, okrug_row: cols[0], address: cols[2], place_raw: cols[3],
+        topic_raw: cols[4], date_raw: cols[5], time_raw: cols[6], meetingType: cols[7], comment: cols[11] });
+      continue;
+    }
     if (eventType === "obhod") {
       // Округ, Адрес, Дата обхода, Время обхода
       if (cols.length < 4) {
@@ -220,7 +222,7 @@ export function parseTSV(tsv, eventType) {
     }
   }
 
-  return { rows, errors };
+  return { rows, errors: rows.length || errors.length ? errors : ["Пустая вставка"] };
 }
 
 // ===================== PIKET/VSTRECHA GROUPING =====================
